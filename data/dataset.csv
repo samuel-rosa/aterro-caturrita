@@ -1,0 +1,23 @@
+item,dado
+dataset_id,ctb
+dataset_titulo,"Conjunto de dados do solo construído sobre o Aterro Encerrado da Caturrita, Santa Maria, RS"
+dataset_descricao,"A caracterização do solo construído foi realizada em dois momentos distintos. Primeiro, no ano de 2007, pela coleta de 15 amostras da camada superficial do solo (0-20) em três ambientes identificados no aterro encerrado. Esses ambientes são os terços superior, médio e inferior, delimitados por canais superficiais de drenagem pluvial. As coordenadas espaciais das quinze observações foi inferida no escritório usando imagem de satélite de alta resolução espacial. O segundo momento de caracterização do solo construído ocorreu em 2008, pela coleta de 48 amostras na profundidade de 0 a 20 cm posicionadas em grade regular com espaçamento de 22,4 m. A localização dos pontos de observação no campo foi realizada usando GPS de navegação. O solo da área de empréstimo foi caracterizado para fins de comparação. As amostras da segunda amostragem foram analisadas em triplicata. Participaram das atividades de amostragem e análise laboratorial da segunda fase: Jean Michel Moura Bueno, Andrisa Balbinot, Pablo Miguel, Jessé Rodrigo Fink, André Carnielleto Dotto, Gabriel Deobal."
+dataset_versao,2.0
+dataset_licenca,CC BY 4.0
+publicacao_data,28-10-2017
+organizacao_nome,Universidade Federal de Santa Maria (UFSM)
+organizacao_url,http://site.ufsm.br/
+organizacao_pais_id,Brasil
+organizacao_municipio_id,Santa Maria
+organizacao_codigo_postal,97105-900
+organizacao_rua_nome,Av. Roraima
+organizacao_rua_numero,1000
+autor_nome,Alessandro Samuel-Rosa; Ricardo Simão Diniz Dalmolin
+autor_email,alessandrosamuelrosa@gmail.com; dalmolin@ufsm.br
+contribuidor_nome,-
+contribuidor_email,-
+contribuidor_organizacao,-
+dataset_referencia_1,http://dx.doi.org/10.1590/S1413-41522011000200004
+area_conhecimento,"Gênese, Morfologia e Classificação dos Solos"
+palavras_chave,Solos construídos; Solos antrópicos; Solos urbanos; Pedogênese;
+categoria_vcge,Pesquisa científica e tecnologia
