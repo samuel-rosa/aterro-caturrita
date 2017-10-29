@@ -1,0 +1,13 @@
+---
+title: ""
+author: "Alessandro Samuel-Rosa"
+date: "28 October 2017"
+# bibliography: "~/Dropbox/jabref/biblio.bib"
+# csl: 
+output: bookdown::html_document2
+---
+
+```{r, eval=FALSE, echo=FALSE}
+rmarkdown::render('main.Rmd', encoding = 'UTF-8', output_dir = "../docs")
+```
+
