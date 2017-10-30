@@ -21,7 +21,7 @@ library(sp)
 library(georob)
 ```
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
 # Load and prepare data:
 # 'camada_rep' stores soil layer data with laboratory repetitions
 # 'camada_uni' stores the average of the repetitions
@@ -65,13 +65,23 @@ coordinates(pts_uni) <- ~ coord_x + coord_y
 ```
 
 ```{r}
+bubble(pts_uni[!is.na(pts_uni$p_mehlich1_eam), ], 'p_mehlich1_eam', na.rm = TRUE)
+```
+
+
+```{r}
 plot(pts_uni)
 ```
 
 ```{r, fig.asp=1}
 # Sample variogram of the clay content
-vario <- sample.variogram(
-  argila_naoh_pipeta ~ 1, data = pts_uni, locations = ~ coord_x + coord_y, max.lag = 100, lag.dist.def = 10)
+# hist(pts_rep$c_)
+vario_rep <- sample.variogram(
+  log(p_mehlich1_eam) ~ 1, data = pts_rep, locations = ~ coord_x + coord_y, max.lag = 130, 
+  lag.dist.def = 20)
+vario_uni <- sample.variogram(
+  log(p_mehlich1_eam) ~ 1, data = pts_uni, locations = ~ coord_x + coord_y, max.lag = 130, 
+  lag.dist.def = 20)
 plot(vario, annotate.npairs = TRUE)
 ```
 
@@ -79,47 +89,50 @@ I first fit the model keeping `snugget` fixed.
 
 ```{r}
 fit_classic <- georob(
-  argila_naoh_pipeta ~ 1, pts_rep, locations = ~ coord_x + coord_y,
-  param = c(nugget = nugget$argila_naoh_pipeta, variance = 5000, scale = 35),
-  fit.param = default.fit.param(snugget = FALSE), tuning.psi = 1000)
+  log(p_mehlich1_eam) ~ 1, pts_rep, locations = ~ coord_x + coord_y,
+  param = c(nugget = 0.05, variance = 0.4, scale = 15),
+  fit.param = default.fit.param(nugget = TRUE, snugget = FALSE), tuning.psi = 1000)
 fit_classic
 ```
 
 ```{r, fig.asp=1}
 plot(vario, annotate.npairs = TRUE)
 lines(fit_classic)
-abline(h = var(pts_uni$argila_naoh_pipeta), lty = 'dashed')
+abline(h = var(pts_uni$p_mehlich1_eam), lty = 'dashed')
+```
+
+```{r}
+prof <- profilelogLik(fit_classic, data.frame(scale = seq(10, 25, length.out = 100)))
+plot(loglik ~ scale, prof, type = 'l')
+abline(v = fit_classic$variogram.object[[1]]$param['scale'])
 ```
 
 Next I fit a model taking `snugget` into account.
 
 ```{r}
+snugget <- 0.01
 fit_snugget <- georob(
-  argila_naoh_pipeta ~ 1, pts_rep, locations = ~ coord_x + coord_y,
-  param = c(nugget = nugget$argila_naoh_pipeta, snugget = 500, variance = 4000, scale = 35),
-  fit.param = default.fit.param(snugget = TRUE), tuning.psi = 1000)
+  log(p_mehlich1_eam) ~ 1, pts_rep, locations = ~ coord_x + coord_y,
+  param = c(nugget = fit_classic$variogram.object[[1]]$param[['nugget']], 
+            snugget = snugget, 
+            variance = fit_classic$variogram.object[[1]]$param[['variance']] - snugget, 
+            scale = fit_classic$variogram.object[[1]]$param[['scale']]),
+  fit.param = default.fit.param(nugget = FALSE, snugget = TRUE, scale = TRUE), 
+  tuning.psi = 1000)
 fit_snugget
 ```
 
 ```{r, fig.asp=1}
-plot(vario, annotate.npairs = TRUE)
+plot(vario_rep, annotate.npairs = TRUE)
 lines(fit_classic, col = 'blue')
 lines(fit_snugget, col = 'red')
-abline(h = var(pts_uni$argila_naoh_pipeta), lty = 'dashed')
+abline(h = var(log(pts_uni$p_mehlich1_eam), na.rm = TRUE), lty = 'dashed')
 ```
 
 ```{r}
-fit_snugget_fixed <- georob(
-  argila_naoh_pipeta ~ 1, pts_rep, locations = ~ coord_x + coord_y,
-  param = c(nugget = nugget$argila_naoh_pipeta, snugget = 500, variance = 4000, scale = 35),
-  fit.param = default.fit.param(snugget = FALSE), tuning.psi = 1000)
-fit_snugget_fixed
+prof <- profilelogLik(fit_snugget, data.frame(scale = seq(10, 30, length.out = 100)))
+plot(loglik ~ scale, prof, type = 'l')
+abline(v = fit_snugget$variogram.object[[1]]$param['scale'])
 ```
 
-```{r, fig.asp=1}
-plot(vario, annotate.npairs = TRUE)
-lines(fit_classic, col = 'blue')
-lines(fit_snugget, col = 'red')
-lines(fit_snugget_fixed, col = 'green')
-abline(h = var(pts_uni$argila_naoh_pipeta), lty = 'dashed')
-```
+
