@@ -1,5 +1,5 @@
 ---
-title: ""
+title: "Solo construído no aterro encerrado da Caturrita, Santa Maria, RS"
 author: "Alessandro Samuel-Rosa"
 date: "28 October 2017"
 # bibliography: "~/Dropbox/jabref/biblio.bib"
@@ -8,34 +8,118 @@ output: bookdown::html_document2
 ---
 
 ```{r, eval=FALSE, echo=FALSE}
+# Render document
 rmarkdown::render('main.Rmd', encoding = 'UTF-8', output_dir = "../docs")
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
+# Load packages
 library(readr)
 library(magrittr)
 library(dplyr)
 library(sp)
-library(gstat)
+library(georob)
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-camada <- read_csv('../data/camada.csv', locale = locale(decimal_mark = ','), na = '-', comment = 'unidade')
-observacao <- read_csv('../data/observacao.csv', locale = locale(decimal_mark = ','), na = '-', comment = 'unidade')
+# Load and prepare data:
+# 'camada_rep' stores soil layer data with laboratory repetitions
+# 'camada_uni' stores the average of the repetitions
+# 'nugget' is the average variance of the laboratory repetitions
+# 'observacao' stores the coordinates of all observations
+camada_rep <- read_csv('../data/camada.csv', locale = locale(decimal_mark = ','), na = '-', comment = 'unidade')
+camada_uni <- 
+  camada_rep %>% 
+  select(-camada_numero, -camada_nome, -amostra_codigo, -profund_sup, -profund_inf) %>% 
+  group_by(observacao_id) %>% 
+  summarise_each(funs(mean))
+nugget <-   
+  camada_rep %>% 
+  select(-camada_numero, -camada_nome, -amostra_codigo, -profund_sup, -profund_inf) %>% 
+  group_by(observacao_id) %>% 
+  summarise_each(funs(var(., na.rm = TRUE))) %>% 
+  select(-observacao_id) %>% 
+  summarise_each(funs(mean(., na.rm = TRUE)))
+observacao <- 
+  read_csv('../data/observacao.csv', locale = locale(decimal_mark = ','), na = '-', comment = 'unidade') %>% 
+  mutate(coord_x = coord_x - min(coord_x),
+         coord_y = coord_y - min(coord_y))
+```
+
+```{r}
 plot(observacao[, c("coord_x", "coord_y")])
 ```
 
 ```{r}
-pts <- 
-  merge(observacao, camada, by = 'observacao_id') %>% 
-  filter(observacao_id != 'ACC-perfil-2008')
+# Prepare point data eliminating the soil profile and observations from 2007
+# 'pts_rep' stores data on all repeitions
+# 'pts_uni' stores the average of the repetions per observation
+pts_rep <- 
+  merge(observacao, camada_rep, by = 'observacao_id') %>% 
+  filter(observacao_id != 'ACC-perfil-2008' & observacao_data != 'xx-xx-2007')
+coordinates(pts_rep) <- ~ coord_x + coord_y
+pts_uni <- 
+  merge(observacao, camada_uni, by = 'observacao_id') %>% 
+  filter(observacao_id != 'ACC-perfil-2008' & observacao_data != 'xx-xx-2007')
+coordinates(pts_uni) <- ~ coord_x + coord_y
 ```
 
 ```{r}
-coordinates(pts) <- ~ coord_x + coord_y
+plot(pts_uni)
+```
+
+```{r, fig.asp=1}
+# Sample variogram of the clay content
+vario <- sample.variogram(
+  argila_naoh_pipeta ~ 1, data = pts_uni, locations = ~ coord_x + coord_y, max.lag = 100, lag.dist.def = 10)
+plot(vario, annotate.npairs = TRUE)
+```
+
+I first fit the model keeping `snugget` fixed.
+
+```{r}
+fit_classic <- georob(
+  argila_naoh_pipeta ~ 1, pts_rep, locations = ~ coord_x + coord_y,
+  param = c(nugget = nugget$argila_naoh_pipeta, variance = 5000, scale = 35),
+  fit.param = default.fit.param(snugget = FALSE), tuning.psi = 1000)
+fit_classic
+```
+
+```{r, fig.asp=1}
+plot(vario, annotate.npairs = TRUE)
+lines(fit_classic)
+abline(h = var(pts_uni$argila_naoh_pipeta), lty = 'dashed')
+```
+
+Next I fit a model taking `snugget` into account.
+
+```{r}
+fit_snugget <- georob(
+  argila_naoh_pipeta ~ 1, pts_rep, locations = ~ coord_x + coord_y,
+  param = c(nugget = nugget$argila_naoh_pipeta, snugget = 500, variance = 4000, scale = 35),
+  fit.param = default.fit.param(snugget = TRUE), tuning.psi = 1000)
+fit_snugget
+```
+
+```{r, fig.asp=1}
+plot(vario, annotate.npairs = TRUE)
+lines(fit_classic, col = 'blue')
+lines(fit_snugget, col = 'red')
+abline(h = var(pts_uni$argila_naoh_pipeta), lty = 'dashed')
 ```
 
 ```{r}
-plot(variogram(c_ ~ 1, pts, cloud = TRUE, cutoff = Inf))
+fit_snugget_fixed <- georob(
+  argila_naoh_pipeta ~ 1, pts_rep, locations = ~ coord_x + coord_y,
+  param = c(nugget = nugget$argila_naoh_pipeta, snugget = 500, variance = 4000, scale = 35),
+  fit.param = default.fit.param(snugget = FALSE), tuning.psi = 1000)
+fit_snugget_fixed
 ```
 
+```{r, fig.asp=1}
+plot(vario, annotate.npairs = TRUE)
+lines(fit_classic, col = 'blue')
+lines(fit_snugget, col = 'red')
+lines(fit_snugget_fixed, col = 'green')
+abline(h = var(pts_uni$argila_naoh_pipeta), lty = 'dashed')
+```
