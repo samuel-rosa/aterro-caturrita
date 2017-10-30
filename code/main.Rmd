@@ -65,6 +65,10 @@ pts_uni <-
 coordinates(pts_uni) <- ~ coord_x + coord_y
 ```
 
+```{r, echo=FALSE, fig.asp=1}
+xyplot(coord_y ~ coord_x, as.data.frame(pts_uni@coords), col = 'black', pch = 17)
+```
+
 ```{r, fig.width=14}
 pts_uni@data %>% 
   select(-observacao_id, -densidade, -areiafina_naoh_peneira) %>% 
@@ -72,14 +76,8 @@ pts_uni@data %>%
         varnames = c('H+Al', 'Al', 'Ca', 'Mg', 'C', 'pH', 'P', 'K', 'Na', 'Sand', 'Clay'))
 ```
 
-
-```{r}
-plot(pts_uni)
-```
-
 ```{r, fig.asp=1}
 # Sample variogram of the clay content
-# hist(pts_rep$c_)
 vario_rep <- sample.variogram(
   log(p_mehlich1_eam) ~ 1, data = pts_rep, locations = ~ coord_x + coord_y, max.lag = 130, 
   lag.dist.def = 20)
