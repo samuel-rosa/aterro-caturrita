@@ -7,6 +7,53 @@ date: "28 October 2017"
 output: bookdown::html_document2
 ---
 
+# Introdução
+
+Descrever o processo de construção do solo (completamente desorganizado). Que tipo de estrutura aprece no 
+início. O solo parece completamente aleatório.
+
+Cessa a perturbação humana sobre o solo e aumenta a atuação dos demais processos pedogenéticos.
+
+Com o passar do tempo, a ação dos agentes naturais (chuva, calor, ...) sobre o solo deve induzir a ocorrência 
+de processos que levam, paulatinamente, à organização espacial do solo. Isso produz autocorrelação espacial
+de maior alcance.
+
+Objetivo é verificar se, após uma década, a estrutura de variação espacial do solo construído foi alterada no 
+sentido de apresentar maior correlação com as condições ambientais e maior alcance de dependência espacial.
+
+# Descrição da área
+
+Localização. Características ambientais. Histórico de uso. Uso atual (bovinos, queimada para renovação do
+pasto)
+
+# Amostragem do solo
+
+*n* = 48
+
+Primeira amostragem (2007/2008). Decisões tomadas (malha amostral...). Os resultados são condicionados pela
+densidade e configuração amostral.
+
+Segunda amostragem (2017). Novas variáveis observadas no campo (profundidade).
+
+# Análise das amostras
+
+Métodos de laboratório.
+
+# Covariáveis ambientais
+
+* Relevo (indice de umidade topográfica, elevação relativa, declividade, concavidade, distância dos canais
+  de drenagem)
+* Zonas de drenagem (3)
+* Pontos de afloramento de chorume (distância)
+* Imagens de satélite (RapidEye)
+
+# Modelo linear misto de variação espacial
+
+Explicar a estrutura do modelo. Estimação de parâmetros, principalmente o alcance ($\alpha$), e talvez a
+suavidade ($\nu$).
+
+# Resultados
+
 ```{r, eval=FALSE, echo=FALSE}
 # Render document
 rmarkdown::render('main.Rmd', encoding = 'UTF-8', output_dir = "../docs")
@@ -79,12 +126,12 @@ pts_uni@data %>%
 ```{r, fig.asp=1}
 # Sample variogram of the clay content
 vario_rep <- sample.variogram(
-  log(p_mehlich1_eam) ~ 1, data = pts_rep, locations = ~ coord_x + coord_y, max.lag = 130, 
+  c_ ~ 1, data = pts_rep, locations = ~ coord_x + coord_y, max.lag = 130, 
   lag.dist.def = 20)
 vario_uni <- sample.variogram(
-  log(p_mehlich1_eam) ~ 1, data = pts_uni, locations = ~ coord_x + coord_y, max.lag = 130, 
+  c_ ~ 1, data = pts_uni, locations = ~ coord_x + coord_y, max.lag = 130, 
   lag.dist.def = 20)
-plot(vario, annotate.npairs = TRUE)
+plot(vario_uni, annotate.npairs = TRUE)
 ```
 
 I first fit the model keeping `snugget` fixed.
@@ -98,7 +145,7 @@ fit_classic
 ```
 
 ```{r, fig.asp=1}
-plot(vario, annotate.npairs = TRUE)
+plot(vario_uni, annotate.npairs = TRUE)
 lines(fit_classic)
 abline(h = var(pts_uni$p_mehlich1_eam), lty = 'dashed')
 ```
