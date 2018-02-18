@@ -20,9 +20,9 @@ library(gstat)
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-camada <- read_csv('../data/camada.csv', locale = locale(decimal_mark = ','), na = '-', comment = 'unidade')
-observacao <- read_csv('../data/observacao.csv', locale = locale(decimal_mark = ','), na = '-', comment = 'unidade')
-plot(observacao[, c("coord_x", "coord_y")])
+camada <- febr::layer("ctb0036", variable = "all")
+observacao <- febr::observation("ctb0036", variable = "all")
+plot(observacao[c("coord_x", "coord_y")])
 ```
 
 ```{r}
