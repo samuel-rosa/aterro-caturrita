@@ -1,5 +1,5 @@
 ---
-title: ""
+title: "Solo construído no aterro encerrado da Caturrita, Santa Maria, RS"
 author: "Alessandro Samuel-Rosa"
 date: "28 October 2017"
 # bibliography: "~/Dropbox/jabref/biblio.bib"
@@ -7,35 +7,188 @@ date: "28 October 2017"
 output: bookdown::html_document2
 ---
 
+# Introdução
+
+Descrever o processo de construção do solo (completamente desorganizado). Que tipo de estrutura aprece no 
+início. O solo parece completamente aleatório.
+
+Cessa a perturbação humana sobre o solo e aumenta a atuação dos demais processos pedogenéticos.
+
+Com o passar do tempo, a ação dos agentes naturais (chuva, calor, ...) sobre o solo deve induzir a ocorrência 
+de processos que levam, paulatinamente, à organização espacial do solo. Isso produz autocorrelação espacial
+de maior alcance.
+
+Objetivo é verificar se, após uma década, a estrutura de variação espacial do solo construído foi alterada no 
+sentido de apresentar maior correlação com as condições ambientais e maior alcance de dependência espacial.
+
+# Descrição da área
+
+Localização. Características ambientais. Histórico de uso. Uso atual (bovinos, queimada para renovação do
+pasto)
+
+# Amostragem do solo
+
+*n* = 48
+
+Primeira amostragem (2007/2008). Decisões tomadas (malha amostral...). Os resultados são condicionados pela
+densidade e configuração amostral.
+
+Segunda amostragem (2017). Novas variáveis observadas no campo (profundidade).
+
+# Análise das amostras
+
+Métodos de laboratório.
+
+# Covariáveis ambientais
+
+* Relevo (indice de umidade topográfica, elevação relativa, declividade, concavidade, distância dos canais
+  de drenagem)
+* Zonas de drenagem (3)
+* Pontos de afloramento de chorume (distância)
+* Imagens de satélite (RapidEye)
+
+# Modelo linear misto de variação espacial
+
+Explicar a estrutura do modelo. Estimação de parâmetros, principalmente o alcance ($\alpha$), e talvez a
+suavidade ($\nu$).
+
+# Resultados
+
 ```{r, eval=FALSE, echo=FALSE}
+# Render document
 rmarkdown::render('main.Rmd', encoding = 'UTF-8', output_dir = "../docs")
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
+# Load packages
 library(readr)
 library(magrittr)
 library(dplyr)
 library(sp)
-library(gstat)
+library(georob)
+library(latticeExtra)
 ```
 
+<<<<<<< HEAD
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 camada <- febr::layer("ctb0036", variable = "all")
 observacao <- febr::observation("ctb0036", variable = "all")
 plot(observacao[c("coord_x", "coord_y")])
+=======
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+camada <- read_csv('../data/camada.csv', locale = locale(decimal_mark = ','), na = '-', comment = 'unidade')
+observacao <- read_csv('../data/observacao.csv', locale = locale(decimal_mark = ','), na = '-', comment = 'unidade')
+>>>>>>> c63fdc5230f53f023b9cbf85cd8f58be965495a9
 ```
 
-```{r}
-pts <- 
-  merge(observacao, camada, by = 'observacao_id') %>% 
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+camada_rep <- 
+  camada %>% 
+  select(-camada_numero, -camada_nome, -amostra_codigo, -profund_sup, -profund_inf) %>% 
   filter(observacao_id != 'ACC-perfil-2008')
+nugget <-
+  camada_rep %>% 
+  group_by(observacao_id) %>% 
+  summarise_each(funs(var(., na.rm = TRUE))) %>% 
+  select(-observacao_id) %>% 
+  summarise_each(funs(mean(., na.rm = TRUE)))
+camada_uni <- 
+  camada_rep %>% 
+  group_by(observacao_id) %>% 
+  summarise_all(funs(mean(., na.rm = TRUE)))
 ```
 
 ```{r}
-coordinates(pts) <- ~ coord_x + coord_y
+pts_rep <- 
+  observacao %>% 
+  select(-coord_sistema, -coord_precisao, -coord_fonte, -pais_id, -estado_id, -municipio_id, -amostra_tipo, -amostra_quanti, 
+         -amostra_area, -taxon_sibcs_2006, -profund_solum) %>% 
+  merge(camada_rep, by = 'observacao_id') %>% 
+  filter(observacao_id != 'ACC-perfil-2008' & observacao_data != 'xx-xx-2007') %>%
+  select(-observacao_data) %>% 
+  mutate(coord_x = coord_x - min(coord_x), coord_y = coord_y - min(coord_y))
+coordinates(pts_rep) <- ~ coord_x + coord_y
+pts_uni <- 
+  observacao %>% 
+  select(-coord_sistema, -coord_precisao, -coord_fonte, -pais_id, -estado_id, -municipio_id, -amostra_tipo, -amostra_quanti, 
+         -amostra_area, -taxon_sibcs_2006, -profund_solum) %>%
+  merge(camada_uni, by = 'observacao_id') %>% 
+  filter(observacao_id != 'ACC-perfil-2008' & observacao_data != 'xx-xx-2007') %>% 
+  select(-observacao_data) %>% 
+  mutate(coord_x = coord_x - min(coord_x), coord_y = coord_y - min(coord_y))
+coordinates(pts_uni) <- ~ coord_x + coord_y
+```
+
+```{r, echo=FALSE, fig.asp=1}
+xyplot(coord_y ~ coord_x, as.data.frame(pts_uni@coords), col = 'black', pch = 17)
+```
+
+```{r, fig.width=14}
+pts_uni@data %>% 
+  select(-observacao_id, -densidade, -areiafina_naoh_peneira) %>% 
+  splom(cex = 0.5, pscales = 0, col = 'darkgray',
+        varnames = c('H+Al', 'Al', 'Ca', 'Mg', 'C', 'pH', 'P', 'K', 'Na', 'Sand', 'Clay'))
+```
+
+```{r, fig.asp=1}
+# Sample variogram of the clay content
+vario_rep <- sample.variogram(
+  c_ ~ 1, data = pts_rep, locations = ~ coord_x + coord_y, max.lag = 130, 
+  lag.dist.def = 20)
+vario_uni <- sample.variogram(
+  c_ ~ 1, data = pts_uni, locations = ~ coord_x + coord_y, max.lag = 130, 
+  lag.dist.def = 20)
+plot(vario_uni, annotate.npairs = TRUE)
+```
+
+I first fit the model keeping `snugget` fixed.
+
+```{r}
+fit_classic <- georob(
+  log(p_mehlich1_eam) ~ 1, pts_rep, locations = ~ coord_x + coord_y,
+  param = c(nugget = 0.05, variance = 0.4, scale = 15),
+  fit.param = default.fit.param(nugget = TRUE, snugget = FALSE), tuning.psi = 1000)
+fit_classic
+```
+
+```{r, fig.asp=1}
+plot(vario_uni, annotate.npairs = TRUE)
+lines(fit_classic)
+abline(h = var(pts_uni$p_mehlich1_eam), lty = 'dashed')
 ```
 
 ```{r}
-plot(variogram(c_ ~ 1, pts, cloud = TRUE, cutoff = Inf))
+prof <- profilelogLik(fit_classic, data.frame(scale = seq(10, 25, length.out = 100)))
+plot(loglik ~ scale, prof, type = 'l')
+abline(v = fit_classic$variogram.object[[1]]$param['scale'])
 ```
+
+Next I fit a model taking `snugget` into account.
+
+```{r}
+snugget <- 0.01
+fit_snugget <- georob(
+  log(p_mehlich1_eam) ~ 1, pts_rep, locations = ~ coord_x + coord_y,
+  param = c(nugget = fit_classic$variogram.object[[1]]$param[['nugget']], 
+            snugget = snugget, 
+            variance = fit_classic$variogram.object[[1]]$param[['variance']] - snugget, 
+            scale = fit_classic$variogram.object[[1]]$param[['scale']]),
+  fit.param = default.fit.param(nugget = FALSE, snugget = TRUE, scale = TRUE), 
+  tuning.psi = 1000)
+fit_snugget
+```
+
+```{r, fig.asp=1}
+plot(vario_rep, annotate.npairs = TRUE)
+lines(fit_classic, col = 'blue')
+lines(fit_snugget, col = 'red')
+abline(h = var(log(pts_uni$p_mehlich1_eam), na.rm = TRUE), lty = 'dashed')
+```
+
+```{r}
+prof <- profilelogLik(fit_snugget, data.frame(scale = seq(10, 30, length.out = 100)))
+plot(loglik ~ scale, prof, type = 'l')
+abline(v = fit_snugget$variogram.object[[1]]$param['scale'])
+```
+
 
