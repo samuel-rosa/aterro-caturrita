@@ -153,24 +153,25 @@ cor2 <- cor2 %>% cor() %>% round(2) %T>% print()
 # Join linear correlations in a single matrix
 cor1[upper.tri(cor1)] <- cor2[upper.tri(cor2)]
 diag(cor1) <- NA_real_
-cor.colors <- colorRampPalette(c("blue", "white", "red"))
-png("../res/fig/corrplot.png", width = 480 * 2, height = 480 * 2, res = 72 * 2)
-par(mar = c(4, 4, 4, 4) + 0.1)
-image(t(cor1)[ncol(cor1):1, ], axes = FALSE, col = cor.colors(200), breaks = seq(-1, 1, by = 0.01))
+cor.colors <- RColorBrewer::brewer.pal(11, name = "RdBu") %>% colorRampPalette()
+png("../res/fig/corrplot.png", width = 480 * 2.3, height = 480 * 2, res = 72 * 2)
+par(mar = c(4, 4, 4, 6) + 0.1)
+fields::image.plot(t(cor1[ncol(cor1):1, ]), axes = FALSE, col = cor.colors(100), breaks = seq(-1, 1, length.out = 101))
 box()
 text(
   x = (rep(1:ncol(cor1), ncol(cor1)) - 1) / (ncol(cor1) - 1), 
   y = (rep(1:ncol(cor1), each = ncol(cor1)) - 1) / (ncol(cor1) - 1), 
-  labels = as.numeric(t(cor1)[ncol(cor1):1, ]))
-axis(side = 1, at = seq(0, 1, length.out = ncol(cor1)), labels = rev(colnames(cor1)), las = 2)
-axis(side = 2, at = seq(0, 1, length.out = ncol(cor1)), labels = colnames(cor1), las = 1)
-axis(side = 3, at = seq(0, 1, length.out = ncol(cor1)), labels = rev(colnames(cor1)), las = 2)
-axis(side = 4, at = seq(0, 1, length.out = ncol(cor1)), labels = colnames(cor1), las = 1)
+  labels = as.numeric(t(cor1[ncol(cor1):1, ])))
+axis(side = 1, at = seq(0, 1, length.out = ncol(cor1)), labels = colnames(cor1), las = 2)
+axis(side = 2, at = seq(0, 1, length.out = ncol(cor1)), labels = rev(colnames(cor1)), las = 1)
+axis(side = 3, at = seq(0, 1, length.out = ncol(cor1)), labels = colnames(cor1), las = 2)
+axis(side = 4, at = seq(0, 1, length.out = ncol(cor1)), labels = rev(colnames(cor1)), las = 1)
 dev.off()
 ```
 
-
-
+```{r}
+cor1
+```
 
 
 
