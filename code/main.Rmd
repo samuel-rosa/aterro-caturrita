@@ -61,24 +61,123 @@ rmarkdown::render('main.Rmd', encoding = 'UTF-8', output_dir = "../docs")
 
 ```{r, message=FALSE, warning=FALSE}
 # Load packages
-library(readr)
 library(magrittr)
 library(dplyr)
-library(sp)
-library(georob)
-library(latticeExtra)
 ```
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-camada <- febr::layer("ctb0036", variable = "all")
-observacao <- febr::observation("ctb0036", variable = "all")
-plot(observacao[c("coord_x", "coord_y")])
+```{r febr, echo=FALSE, message=FALSE, warning=FALSE}
+# Download data from the Free Brazilian Repository for Open Soil Data (febr)
+if (!file.exists("../data/camada.csv")) {
+  camada <- febr::layer("ctb0036", variable = "all")
+  write.table(camada, file = "../data/camada.csv", sep = ";", dec = ",", row.names = FALSE)
+} else {
+  camada <- read.table("../data/camada.csv", sep = ";", dec = ",", header = TRUE, stringsAsFactors = FALSE)
+}
+if (!file.exists("../data/observacao.csv")) {
+  observacao <- febr::layer("ctb0036", variable = "all")
+  write.table(observacao, file = "../data/observacao.csv", sep = ";", dec = ",", row.names = FALSE)
+} else {
+  observacao <- 
+    read.table("../data/observacao.csv", sep = ";", dec = ",", header = TRUE, stringsAsFactors = FALSE)
+}
 ```
+
+```{r}
+# Stack columns for bwplot
+stack2 <-
+  function (x, expand, ...) {
+    cols <- colnames(x)
+    if (!missing(expand)) {
+      cols <- cols[!cols %in% expand]
+    }
+    res <- cbind(utils::stack(x = x[cols], ...), rep(x[[expand]], length(cols)))
+    colnames(res)[3] <- expand
+    return (res)
+  }
+```
+
+
+```{r}
+# box-and-whisker plots using data from both years
+p1 <-
+  camada %>% 
+  filter(!grepl("-2007", observacao_id, fixed = TRUE) & !grepl("-perfil-", observacao_id, fixed = TRUE)) %>%
+  select(-dataset_id, -camada_id, -camada_nome, -amostra_id, -profund_sup, -profund_inf) %>% 
+  select(-areiafina_naoh_esferas_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
+  group_by(observacao_id) %>% 
+  summarise_all(funs(mean(., na.rm = TRUE))) %>% 
+  mutate(year = substr(observacao_id, nchar(observacao_id) - 3, nchar(observacao_id))) %>% 
+  select(-observacao_id) %>% 
+  stack2(expand = "year") %>% 
+  lattice::bwplot(
+    values ~ year | ind, data = ., scales = list(relation = 'free'), 
+    panel = function (...) {
+      lattice::panel.grid(h = -1, v = 0)
+      lattice::panel.bwplot(...)
+    })
+p1$condlevels$ind <- strsplit(p1$condlevels$ind, "_") %>% sapply(function (x) x[1])
+png("../res/fig/bwplot.png", width = 480 * 3, height = 480 * 2, res = 72 * 2)
+p1
+dev.off()
+```
+
+```{r}
+# Linear correlation (2008)
+cor1 <-
+  camada %>% 
+  filter(grepl("-2008", observacao_id, fixed = TRUE) & observacao_id != 'ACC-perfil-2008') %>% 
+  select(-dataset_id, -camada_id, -camada_nome, -amostra_id, -profund_sup, -profund_inf) %>% 
+  select(-areiafina_naoh_esferas_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
+  group_by(observacao_id) %>% 
+  summarise_all(funs(mean(., na.rm = TRUE))) %>% 
+  select(-observacao_id)
+colnames(cor1) <- strsplit(colnames(cor1), "_") %>% sapply(function (x) x[1])
+cor1 <- cor1 %>% cor() %>% round(2) %T>% print()
+```
+
+```{r}
+# Linear correlation (2018)
+cor2 <-
+  camada %>% 
+  filter(grepl("-2018", observacao_id, fixed = TRUE)) %>% 
+  select(-dataset_id, -camada_id, -camada_nome, -amostra_id, -profund_sup, -profund_inf) %>% 
+  select(-areiafina_naoh_esferas_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
+  group_by(observacao_id) %>% 
+  summarise_all(funs(mean(., na.rm = TRUE))) %>% 
+  select(-observacao_id)
+colnames(cor2) <- strsplit(colnames(cor2), "_") %>% sapply(function (x) x[1])
+cor2 <- cor2 %>% cor() %>% round(2) %T>% print()
+```
+
+```{r, fig.asp=1}
+# Join linear correlations in a single matrix
+cor1[upper.tri(cor1)] <- cor2[upper.tri(cor2)]
+diag(cor1) <- NA_real_
+cor.colors <- colorRampPalette(c("blue", "white", "red"))
+png("../res/fig/corrplot.png", width = 480 * 2, height = 480 * 2, res = 72 * 2)
+par(mar = c(4, 4, 4, 4) + 0.1)
+image(t(cor1)[ncol(cor1):1, ], axes = FALSE, col = cor.colors(200), breaks = seq(-1, 1, by = 0.01))
+box()
+text(
+  x = (rep(1:ncol(cor1), ncol(cor1)) - 1) / (ncol(cor1) - 1), 
+  y = (rep(1:ncol(cor1), each = ncol(cor1)) - 1) / (ncol(cor1) - 1), 
+  labels = as.numeric(t(cor1)[ncol(cor1):1, ]))
+axis(side = 1, at = seq(0, 1, length.out = ncol(cor1)), labels = rev(colnames(cor1)), las = 2)
+axis(side = 2, at = seq(0, 1, length.out = ncol(cor1)), labels = colnames(cor1), las = 1)
+axis(side = 3, at = seq(0, 1, length.out = ncol(cor1)), labels = rev(colnames(cor1)), las = 2)
+axis(side = 4, at = seq(0, 1, length.out = ncol(cor1)), labels = colnames(cor1), las = 1)
+dev.off()
+```
+
+
+
+
+
 
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
 camada_rep <- 
   camada %>% 
-  select(-camada_numero, -camada_nome, -amostra_codigo, -profund_sup, -profund_inf) %>% 
+  select(-dataset_id, -camada_id, -camada_nome, -amostra_id, -profund_sup, -profund_inf) %>% 
   filter(observacao_id != 'ACC-perfil-2008')
 nugget <-
   camada_rep %>% 
@@ -95,8 +194,8 @@ camada_uni <-
 ```{r}
 pts_rep <- 
   observacao %>% 
-  select(-coord_sistema, -coord_precisao, -coord_fonte, -pais_id, -estado_id, -municipio_id, -amostra_tipo, -amostra_quanti, 
-         -amostra_area, -taxon_sibcs_2006, -profund_solum) %>% 
+  select(-coord_sistema, -coord_precisao, -coord_fonte, -pais_id, -estado_id, -municipio_id, -amostra_tipo,
+         -amostra_quanti, -amostra_area, -taxon_sibcs_2006, -profund_solum) %>% 
   merge(camada_rep, by = 'observacao_id') %>% 
   filter(observacao_id != 'ACC-perfil-2008' & observacao_data != 'xx-xx-2007') %>%
   select(-observacao_data) %>% 
@@ -104,8 +203,8 @@ pts_rep <-
 coordinates(pts_rep) <- ~ coord_x + coord_y
 pts_uni <- 
   observacao %>% 
-  select(-coord_sistema, -coord_precisao, -coord_fonte, -pais_id, -estado_id, -municipio_id, -amostra_tipo, -amostra_quanti, 
-         -amostra_area, -taxon_sibcs_2006, -profund_solum) %>%
+  select(-coord_sistema, -coord_precisao, -coord_fonte, -pais_id, -estado_id, -municipio_id, -amostra_tipo,
+         -amostra_quanti, -amostra_area, -taxon_sibcs_2006, -profund_solum) %>%
   merge(camada_uni, by = 'observacao_id') %>% 
   filter(observacao_id != 'ACC-perfil-2008' & observacao_data != 'xx-xx-2007') %>% 
   select(-observacao_data) %>% 
