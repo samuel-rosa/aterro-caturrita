@@ -1,4 +1,4 @@
-"dataset_id";"observacao_id";"camada_id";"camada_nome";"amostra_id";"profund_sup";"profund_inf";"acidez_acetcal70_naoh";"aluminio_kcl_naoh";"calcio_kcl_eaa";"magnesio_kcl_eaa";"carbono_cromo_30min150_mohr";"ph_h2o_25_xxx";"fosforo_mehlich1_eam";"potassio_mehlich1_eeac";"sodio_mehlich1_eeac";"dsi_cilindro";"areiafina_naoh_esferas_peneira";"areia_naoh_esferas_peneira";"argila_naoh_esferas_pipeta"
+"dataset_id";"observacao_id";"camada_id";"camada_nome";"amostra_id";"profund_sup";"profund_inf";"acidez_acetcal70_naoh";"aluminio_kcl_naoh";"calcio_kcl_eaa";"magnesio_kcl_eaa";"carbono_cromo_30min150_mohr";"ph_h2o_25_xxx";"fosforo_mehlich1_eam";"potassio_mehlich1_eeac";"sodio_mehlich1_eeac";"dsi_cilindro";"areiafina2_naoh_peneira";"areia_naoh_peneira";"argila_naoh_pipeta"
 "ctb0036";"ACC-1-2007";"1";NA;"a";"0";"20";NA;1,9;1,2;0,7;4,6;4,7;1,5;0,28;NA;1,69;221;619;223
 "ctb0036";"ACC-2-2007";"1";NA;"a";"0";"20";NA;2,1;1,6;0,7;2,9;4,8;2,2;0,36;NA;1,79;220;560;297
 "ctb0036";"ACC-3-2007";"1";NA;"a";"0";"20";NA;2,5;1,1;0,6;3,5;4,4;2,2;0,32;NA;1,61;224;519;347

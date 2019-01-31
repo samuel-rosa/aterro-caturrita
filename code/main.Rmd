@@ -63,6 +63,7 @@ rmarkdown::render('main.Rmd', encoding = 'UTF-8', output_dir = "../docs")
 # Load packages
 library(magrittr)
 library(dplyr)
+library(pedometrics)
 ```
 
 ```{r febr, echo=FALSE, message=FALSE, warning=FALSE}
@@ -96,38 +97,39 @@ stack2 <-
   }
 ```
 
-
 ```{r}
 # box-and-whisker plots using data from both years
 p1 <-
   camada %>% 
   filter(!grepl("-2007", observacao_id, fixed = TRUE) & !grepl("-perfil-", observacao_id, fixed = TRUE)) %>%
   select(-dataset_id, -camada_id, -camada_nome, -amostra_id, -profund_sup, -profund_inf) %>% 
-  select(-areiafina_naoh_esferas_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
+  select(-areiafina2_naoh_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
   group_by(observacao_id) %>% 
   summarise_all(funs(mean(., na.rm = TRUE))) %>% 
   mutate(year = substr(observacao_id, nchar(observacao_id) - 3, nchar(observacao_id))) %>% 
   select(-observacao_id) %>% 
   stack2(expand = "year") %>% 
   lattice::bwplot(
-    values ~ year | ind, data = ., scales = list(relation = 'free'), 
+    values ~ year | ind, data = ., scales = list(relation = 'free'), xlab = "Year", ylab = "Content",
     panel = function (...) {
       lattice::panel.grid(h = -1, v = 0)
       lattice::panel.bwplot(...)
     })
-p1$condlevels$ind <- strsplit(p1$condlevels$ind, "_") %>% sapply(function (x) x[1])
+# p1$condlevels$ind <- strsplit(p1$condlevels$ind, "_") %>% sapply(function (x) x[1])
+p1$condlevels$ind <- c("H+Al", "Al3+", "Ca2+", "SOC", "pH", 'P', 'K+', "Na+", "Sand", "Clay")
 png("../res/fig/bwplot.png", width = 480 * 3, height = 480 * 2, res = 72 * 2)
 p1
 dev.off()
 ```
 
+Linear correlation between soil properties in 2008.
+
 ```{r}
-# Linear correlation (2008)
 cor1 <-
   camada %>% 
   filter(grepl("-2008", observacao_id, fixed = TRUE) & observacao_id != 'ACC-perfil-2008') %>% 
   select(-dataset_id, -camada_id, -camada_nome, -amostra_id, -profund_sup, -profund_inf) %>% 
-  select(-areiafina_naoh_esferas_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
+  select(-areiafina2_naoh_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
   group_by(observacao_id) %>% 
   summarise_all(funs(mean(., na.rm = TRUE))) %>% 
   select(-observacao_id)
@@ -135,13 +137,14 @@ colnames(cor1) <- strsplit(colnames(cor1), "_") %>% sapply(function (x) x[1])
 cor1 <- cor1 %>% cor() %>% round(2) %T>% print()
 ```
 
+Linear correlation between soil properties in 2018.
+
 ```{r}
-# Linear correlation (2018)
 cor2 <-
   camada %>% 
   filter(grepl("-2018", observacao_id, fixed = TRUE)) %>% 
   select(-dataset_id, -camada_id, -camada_nome, -amostra_id, -profund_sup, -profund_inf) %>% 
-  select(-areiafina_naoh_esferas_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
+  select(-areiafina2_naoh_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
   group_by(observacao_id) %>% 
   summarise_all(funs(mean(., na.rm = TRUE))) %>% 
   select(-observacao_id)
@@ -149,48 +152,44 @@ colnames(cor2) <- strsplit(colnames(cor2), "_") %>% sapply(function (x) x[1])
 cor2 <- cor2 %>% cor() %>% round(2) %T>% print()
 ```
 
+Correlation plot
+
 ```{r, fig.asp=1}
-# Join linear correlations in a single matrix
-cor1[upper.tri(cor1)] <- cor2[upper.tri(cor2)]
-diag(cor1) <- NA_real_
-cor.colors <- RColorBrewer::brewer.pal(11, name = "RdBu") %>% colorRampPalette()
 png("../res/fig/corrplot.png", width = 480 * 2.3, height = 480 * 2, res = 72 * 2)
-par(mar = c(4, 4, 4, 6) + 0.1)
-fields::image.plot(t(cor1[ncol(cor1):1, ]), axes = FALSE, col = cor.colors(100), breaks = seq(-1, 1, length.out = 101))
-box()
-text(
-  x = (rep(1:ncol(cor1), ncol(cor1)) - 1) / (ncol(cor1) - 1), 
-  y = (rep(1:ncol(cor1), each = ncol(cor1)) - 1) / (ncol(cor1) - 1), 
-  labels = as.numeric(t(cor1[ncol(cor1):1, ])))
-axis(side = 1, at = seq(0, 1, length.out = ncol(cor1)), labels = colnames(cor1), las = 2)
-axis(side = 2, at = seq(0, 1, length.out = ncol(cor1)), labels = rev(colnames(cor1)), las = 1)
-axis(side = 3, at = seq(0, 1, length.out = ncol(cor1)), labels = colnames(cor1), las = 2)
-axis(side = 4, at = seq(0, 1, length.out = ncol(cor1)), labels = rev(colnames(cor1)), las = 1)
+par(mar = c(3, 3, 3, 4.5))
+col.names <- c("H+Al", "Al3+", "Ca2+", "SOC", "pH", 'P', 'K+', "Na+", "Sand", "Clay")
+plotCor(r = cor1, r2 = cor2, col.names = col.names)
 dev.off()
 ```
 
+Quantify laboratory error variance. Note that pH data for 2008 is based on a single measurement. We compute the
+variance of each observation in each year and then compute the mean accross all observations in each year. This
+gives an estimate of the nugget variance of the variogram.
+
 ```{r}
-cor1
-```
-
-
-
-```{r, echo=TRUE, message=FALSE, warning=FALSE}
-camada_rep <- 
-  camada %>% 
-  select(-dataset_id, -camada_id, -camada_nome, -amostra_id, -profund_sup, -profund_inf) %>% 
-  filter(observacao_id != 'ACC-perfil-2008')
 nugget <-
-  camada_rep %>% 
-  group_by(observacao_id) %>% 
-  summarise_each(funs(var(., na.rm = TRUE))) %>% 
-  select(-observacao_id) %>% 
-  summarise_each(funs(mean(., na.rm = TRUE)))
-camada_uni <- 
-  camada_rep %>% 
-  group_by(observacao_id) %>% 
-  summarise_all(funs(mean(., na.rm = TRUE)))
+  camada %>% 
+  dplyr::select(-dataset_id, -camada_id, -camada_nome, -amostra_id, -profund_sup, -profund_inf) %>% 
+  dplyr::select(-areiafina2_naoh_peneira, -magnesio_kcl_eaa, -dsi_cilindro) %>% 
+  dplyr::filter(observacao_id != 'ACC-perfil-2008') %>% 
+  dplyr::group_by(observacao_id) %>% 
+  summarise_all(funs(var(., na.rm = TRUE))) %>% 
+  dplyr::mutate(year = substr(observacao_id, nchar(observacao_id) - 3, nchar(observacao_id))) %>% 
+  dplyr::filter(year != 2007) %>% 
+  dplyr::select(-observacao_id) %>%
+  dplyr::group_by(year) %>%
+  summarise_all(funs(mean(., na.rm = TRUE))) %>% 
+  mutate_if(is.numeric, round, 4) %T>% 
+  print()
+c("-", rep("[cmol_c/kg]^2", 3), "[g/kg]^2", "[-]^2", "[mg/kg]^2", rep("[cmol_c/kg]^2", 2), 
+  rep("[g/kg]^2", 2)) %>% 
+  rbind(nugget) %>% 
+  write.csv("../res/tab/measurement-error-variance.csv", row.names = FALSE)
 ```
+
+
+
+
 
 ```{r}
 pts_rep <- 

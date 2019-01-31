@@ -1,0 +1,4 @@
+"year","acidez_acetcal70_naoh","aluminio_kcl_naoh","calcio_kcl_eaa","carbono_cromo_30min150_mohr","ph_h2o_25_xxx","fosforo_mehlich1_eam","potassio_mehlich1_eeac","sodio_mehlich1_eeac","areia_naoh_peneira","argila_naoh_pipeta"
+"-","[cmol_c/kg]^2","[cmol_c/kg]^2","[cmol_c/kg]^2","[g/kg]^2","[-]^2","[mg/kg]^2","[cmol_c/kg]^2","[cmol_c/kg]^2","[g/kg]^2","[g/kg]^2"
+"2008","0.0152","0.0068","0.0026","0.141","NaN","0.6119","1e-04","4e-04","70.1181","53.9375"
+"2018","0.0135","0.0339","0.0032","0.1005","0.0028","72.1548","1e-04","0","795.3576","373.6979"
